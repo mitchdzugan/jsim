@@ -91,7 +91,7 @@
    :start
    (fn [job]
      (if (:is-active? job)
-       (println (str "[" (:job-id job) "] already active"))
+       (println (str "job@[" (:job-id job) "] already active"))
        (let [jpid (.pid (java.lang.ProcessHandle/current))
              ts (quot (System/currentTimeMillis) 1000)
              pid-confirm (str "c-" jpid "-" ts)
@@ -118,19 +118,22 @@
               ""]
              runsh (str/join "\n" runsh-lines)]
          (wspit "run.bash" runsh)
-         (let [p (pipeline (pb (str "cat " (wf "run.bash")))
-                           (pb (str "nohup bash -c 'exec -a " pid-confirm " bash'")))
-               pid (-> p last :proc .pid)
+         (shell (str "chmod +x " (wf "run.bash")))
+         (let [p (process {:extra-env {"JSIM_STATE_DIR" (str wd)
+                                       "JSIM_EXEC_DIR" (str pproj)}}
+                          (str "nohup bash -c 'exec -a " pid-confirm " bash " (wf "run.bash") "'"))
+               pid (-> p :proc .pid)
                pproc ((:get-pproc job) pid)]
            (wspit "pid-confirm" (prn-str pid-confirm))
            (wspit "last-started" (prn-str ts))
            (spit (str (fs/path (:pjob job) "pid")) pid)
            (fs/delete-tree pproc)
-           (fs/move wd pproc)))))
+           (fs/create-sym-link pproc wd)
+           (println (str "job@[" (:job-id job) "] started with pid@[" pid "]"))))))
    :stop
    (fn [job]
      (if-not (:is-active? job)
-       (println "already stopped")
+       (println (str "job@[" (:job-id job) "] already stopped"))
        (let [ts (quot (System/currentTimeMillis) 1000)
              wd (:pproc job)
              wf #(str (fs/path wd %1))
@@ -138,8 +141,9 @@
              pid (:pid job)]
          (wspit "off" ts)
          (wspit "off-by" (prn-str :stop-action))
-         (println (str "stopping pid:[" pid "]"))
-         (shell (str "kill -9 " pid)))))
+         (println (str "job@[" (:job-id job) "] stopping pid@[" pid "]"))
+         (shell (str "kill -9 " pid))
+         (println (str "job@[" (:job-id job) "] stopped")))))
    :plug-in
    (fn [_])
    :tail
