@@ -105,7 +105,8 @@
               "}"
               "function _do_run () {"
               "  _do_raw_run"
-              "  echo $! > $JSIM_STATE_DIR/status"
+              "  STATUS=$?"
+              "  echo $STATUS > $JSIM_STATE_DIR/status"
               "}"
               "in_fifo=\"$JSIM_STATE_DIR/in-fifo\""
               "err=\"$JSIM_STATE_DIR/err\""
@@ -118,7 +119,7 @@
              runsh (str/join "\n" runsh-lines)]
          (wspit "run.bash" runsh)
          (let [p (pipeline (pb (str "cat " (wf "run.bash")))
-                           (pb (str "bash -c 'exec -a " pid-confirm " bash'")))
+                           (pb (str "nohup bash -c 'exec -a " pid-confirm " bash'")))
                pid (-> p last :proc .pid)
                pproc ((:get-pproc job) pid)]
            (wspit "pid-confirm" (prn-str pid-confirm))
