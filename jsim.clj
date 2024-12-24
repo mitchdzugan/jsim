@@ -124,7 +124,6 @@
            (wspit "pid-confirm" (prn-str pid-confirm))
            (wspit "last-started" (prn-str ts))
            (spit (str (fs/path (:pjob job) "pid")) pid)
-           (shell (str "ps -o args " pid))
            (fs/delete-tree pproc)
            (fs/move wd pproc)))))
    :stop
