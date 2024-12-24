@@ -1,2 +1,4 @@
 /.direnv
+/.clj-kondo
+/.lsp
 /result

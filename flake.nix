@@ -22,7 +22,9 @@
             filter = name: type: type != "regular" || !nixpkgs.lib.hasSuffix ".nix" name;
             src = nixpkgs.lib.cleanSource ./.;
           };
-          propagatedBuildInputs = [ nixpkgsFor.${system}.babashka ];
+          propagatedBuildInputs = with nixpkgsFor.${system}; [
+            babashka bash coreutils ps
+          ];
           dontConfigure = true;
           dontBuild = true;
           installPhase = ''
