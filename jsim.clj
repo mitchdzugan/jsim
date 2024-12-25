@@ -2,7 +2,7 @@
 
 (require '[babashka.fs :as fs]
          '[babashka.cli :as cli]
-         '[babashka.process :refer [shell process pipeline pb]]
+         '[babashka.process :refer [shell process]]
          '[clojure.string :as str]
          '[clojure.pprint :refer [pprint]])
 
@@ -23,7 +23,7 @@
           :else
           (uu fname (fs/path curr "..")))))
 
-(def pproj (fs/normalize (uu "deps.edn")))
+(def pproj (fs/normalize (uu "jsim.edn")))
 (aware '*project-dir* (str pproj))
 (def pproj-state (fs/path pstate (str (fs/file-name pproj)
                                       "-"
@@ -31,8 +31,7 @@
 (aware '*project-state-dir* (str pproj-state))
 (create-dirs pproj-state)
 
-(def deps (read-string (slurp (str (fs/path pproj "deps.edn")))))
-(def proj-config (:jsim deps))
+(def proj-config (eval (read-string (slurp (str (fs/path pproj "jsim.edn"))))))
 (when (empty? proj-config)
   (println (str "no :jsim configurations in "
                 (str pproj)))
@@ -100,8 +99,9 @@
              wspit #(spit (wf %1) %2)
              runsh-lines
              ["#!/usr/bin/env bash"
+              "trap \"trap - SIGTERM && kill -- -$$\" SIGINT SIGKILL SIGTERM EXIT"
               "function _do_raw_run () {"
-              (get proj-config (:job-id job))
+              (:cmd (get proj-config (:job-id job)))
               "}"
               "function _do_run () {"
               "  _do_raw_run"
@@ -121,7 +121,7 @@
          (shell (str "chmod +x " (wf "run.bash")))
          (let [p (process {:extra-env {"JSIM_STATE_DIR" (str wd)
                                        "JSIM_EXEC_DIR" (str pproj)}}
-                          (str "nohup bash -c 'exec -a " pid-confirm " bash " (wf "run.bash") "'"))
+                          (str "bash -c 'exec -a " pid-confirm " bash " (wf "run.bash") "'"))
                pid (-> p :proc .pid)
                pproc ((:get-pproc job) pid)]
            (wspit "pid-confirm" (prn-str pid-confirm))
@@ -142,7 +142,7 @@
          (wspit "off" ts)
          (wspit "off-by" (prn-str :stop-action))
          (println (str "job@[" (:job-id job) "] stopping pid@[" pid "]"))
-         (shell (str "kill -9 " pid))
+         (shell "pkill" "-P" pid)
          (println (str "job@[" (:job-id job) "] stopped")))))
    :plug-in
    (fn [_])
