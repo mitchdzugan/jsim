@@ -23,7 +23,7 @@
             src = nixpkgs.lib.cleanSource ./.;
           };
           propagatedBuildInputs = with nixpkgsFor.${system}; [
-            babashka bash coreutils ps pkill
+            babashka bash coreutils ps procps
           ];
           dontConfigure = true;
           dontBuild = true;
